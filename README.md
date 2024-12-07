@@ -1,4 +1,3 @@
-"""
 # **ARC: Adaptive Reasoning Core**
 
 ARC (Adaptive Reasoning Core) is a foundational large language model (LLM) project designed to optimize the cost and scalability of AI model training while maintaining cutting-edge performance. This project aims to train and deploy an open-source LLM inspired by models like GPT-2 and GPT-3, with a focus on innovation and accessibility.
