@@ -55,5 +55,3 @@ This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) f
 
 ## **Acknowledgments**
 - **Hugging Face**: For providing excellent tools and resources for NLP.
-- **EleutherAI**: For creating and sharing The Pile dataset.
-"""
