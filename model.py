@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import math
 
+
 class LayerNorm(nn.Module):
     def __init__(self, features: int, eps: float = 1e-6):
         super().__init__()
@@ -14,6 +15,7 @@ class LayerNorm(nn.Module):
         std = x.std(-1, keepdim=True)
         return self.a_2 * (x - mean) / (std + self.eps) + self.b_2
 
+
 class FeedForward(nn.Module):
     def __init__(self, d_model, d_ff: int, dropout: float) -> None:
         super().__init__()
@@ -24,24 +26,23 @@ class FeedForward(nn.Module):
     def forward(self, x):
         return self.linear2(self.dropout(torch.relu(self.linear1(x))))
 
+
 class InputEmbedding(nn.Module):
     def __init__(self, d_model: int, vocab_size: int, max_len: int, dropout: float) -> None:
         super().__init__()
         self.token_embedding = nn.Embedding(vocab_size, d_model)
         self.position_embedding = nn.Embedding(max_len, d_model)
         self.dropout = nn.Dropout(dropout)
-        self.d_model = d_model
 
     def forward(self, x):
         seq_len = x.size(1)
         positions = torch.arange(0, seq_len).expand(x.size(0), seq_len).to(x.device)
         return self.dropout(self.token_embedding(x) + self.position_embedding(positions))
 
+
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model: int, seq_len: int, dropout: float) -> None:
         super().__init__()
-        self.d_model = d_model
-        self.seq_len = seq_len
         self.dropout = nn.Dropout(dropout)
 
         pe = torch.zeros(seq_len, d_model)
@@ -53,8 +54,9 @@ class PositionalEncoding(nn.Module):
         self.register_buffer('pe', pe)
 
     def forward(self, x):
-        x = x + (self.pe[:, :x.shape[1], :]).requires_grad_(False)
+        x = x + self.pe[:, :x.size(1), :].requires_grad_(False)
         return self.dropout(x)
+
 
 class Residual(nn.Module):
     def __init__(self, features: int, dropout: float) -> None:
@@ -64,6 +66,7 @@ class Residual(nn.Module):
 
     def forward(self, x, sublayer):
         return x + self.dropout(sublayer(self.norm(x)))
+
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_model: int, h: int, dropout: float) -> None:
@@ -82,7 +85,9 @@ class MultiHeadAttention(nn.Module):
         d_k = q.shape[-1]
         attention_scores = (q @ k.transpose(-2, -1)) / math.sqrt(d_k)
         if mask is not None:
-            attention_scores.masked_fill_(mask == 0, -1e9)
+            # Reshape the mask for broadcasting
+            mask = mask.unsqueeze(1).unsqueeze(2)  # Shape: [batch_size, 1, 1, seq_len]
+            attention_scores = attention_scores.masked_fill(mask == 0, -1e4)
         attention_scores = attention_scores.softmax(dim=-1)
         if dropout is not None:
             attention_scores = dropout(attention_scores)
@@ -95,12 +100,14 @@ class MultiHeadAttention(nn.Module):
         query = q.view(q.shape[0], q.shape[1], self.h, self.d_k).transpose(1, 2)
         key = k.view(k.shape[0], k.shape[1], self.h, self.d_k).transpose(1, 2)
         value = v.view(v.shape[0], v.shape[1], self.h, self.d_k).transpose(1, 2)
-        x, self.attention_scores = MultiHeadAttention.attention(query, key, value, self.d_k, mask, self.dropout)
+        x, _ = MultiHeadAttention.attention(query, key, value, self.d_k, mask, self.dropout)
         x = x.transpose(1, 2).contiguous().view(x.shape[0], -1, self.h * self.d_k)
         return self.linear_o(x)
 
+
 class TransformerBlock(nn.Module):
-    def __init__(self, features: int, self_attention_block: MultiHeadAttention, feed_forward_block: FeedForward, dropout: float) -> None:
+    def __init__(self, features: int, self_attention_block: MultiHeadAttention, feed_forward_block: FeedForward,
+                 dropout: float) -> None:
         super().__init__()
         self.self_attention_block = self_attention_block
         self.feed_forward_block = feed_forward_block
@@ -111,14 +118,25 @@ class TransformerBlock(nn.Module):
         x = self.residual[1](x, self.feed_forward_block)
         return x
 
+
 class Transformer(nn.Module):
-    def __init__(self, vocab_size: int, seq_len: int, d_model: int = 512, N: int = 6, h: int = 8, dropout: float = 0.1, d_ff: int = 2048) -> None:
+    def __init__(self, vocab_size: int, seq_len: int, d_model: int = 512, N: int = 6, h: int = 8, dropout: float = 0.1,
+                 d_ff: int = 2048) -> None:
         super().__init__()
         self.embedding = InputEmbedding(d_model, vocab_size, seq_len, dropout)
         self.positional_encoding = PositionalEncoding(d_model, seq_len, dropout)
-        self.layers = nn.ModuleList([TransformerBlock(d_model, MultiHeadAttention(d_model, h, dropout), FeedForward(d_model, d_ff, dropout), dropout) for _ in range(N)])
+        self.layers = nn.ModuleList([TransformerBlock(d_model, MultiHeadAttention(d_model, h, dropout),
+                                                      FeedForward(d_model, d_ff, dropout), dropout) for _ in range(N)])
         self.norm = LayerNorm(d_model)
         self.projection_layer = nn.Linear(d_model, vocab_size)
+
+    def resize_token_embeddings(self, new_vocab_size):
+        """
+        Resize the token embedding layer to match the new vocabulary size.
+        """
+        old_embeddings = self.embedding.token_embedding.weight.data
+        self.embedding.token_embedding = nn.Embedding(new_vocab_size, old_embeddings.size(1))
+        self.embedding.token_embedding.weight.data[:old_embeddings.size(0)] = old_embeddings
 
     def forward(self, x, mask=None):
         x = self.embedding(x)
@@ -129,6 +147,6 @@ class Transformer(nn.Module):
         return self.projection_layer(x)
 
     @staticmethod
-    def buildTransformer(vocab_size: int, seq_len: int, d_model: int = 512, N: int = 6, h: int = 8, dropout: float = 0.1, d_ff: int = 2048) -> 'Transformer':
+    def buildTransformer(vocab_size: int, seq_len: int, d_model: int = 512, N: int = 6, h: int = 8,
+                         dropout: float = 0.1, d_ff: int = 2048) -> 'Transformer':
         return Transformer(vocab_size, seq_len, d_model, N, h, dropout, d_ff)
-    
