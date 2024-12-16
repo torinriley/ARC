@@ -18,10 +18,6 @@ ARC (Adaptive Reasoning Core) is a foundational large language model (LLM) proje
 - Scale the model iteratively to explore the feasibility of larger architectures.
 - Share insights and methods to encourage research and innovation in accessible AI development.
 
-
-## **Dataset**
-The project uses [The Pile](https://pile.eleuther.ai/), a large-scale dataset designed for training language models. Data is streamed dynamically using Hugging Face’s `datasets` library.
-
 ---
 
 ## **Model Architecture**
