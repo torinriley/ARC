@@ -1,0 +1,89 @@
+{
+    "train_batch_size": "auto",
+    "train_micro_batch_size_per_gpu": 16,
+    "gradient_accumulation_steps": 32,
+    "gradient_clipping": 1.0,
+    "zero_optimization": {
+        "stage": 3,
+        "overlap_comm": true,
+        "contiguous_gradients": true,
+        "reduce_bucket_size": 1e8,        
+        "stage3_prefetch_bucket_size": 1e8,
+        "stage3_param_persistence_threshold": 1e6,
+        "stage3_max_live_parameters": 2e8, 
+        "stage3_max_reuse_distance": 2e8,
+        "stage3_gather_16bit_weights_on_model_save": true,
+        "memory_efficient_linear": true,
+        "sub_group_size": 1e8,
+        "offload_optimizer": {
+            "device": "cpu",
+            "pin_memory": true,
+            "buffer_count": 5,
+            "fast_init": true,
+            "pipeline_read": true
+        }
+    },
+    "bf16": {
+        "enabled": true
+    },
+    "scheduler": {
+        "type": "WarmupDecayLR",
+        "params": {
+            "warmup_min_lr": 1e-6,
+            "warmup_max_lr": 2e-4,
+            "warmup_num_steps": 2000,
+            "total_num_steps": 100000,
+            "warmup_type": "cosine"
+        }
+    },
+    "optimizer": {
+        "type": "AdamW",
+        "params": {
+            "lr": 2e-4,
+            "betas": [0.9, 0.95],
+            "eps": 1e-8,
+            "weight_decay": 0.1
+        }
+    },
+    "activation_checkpointing": {
+        "partition_activations": true,
+        "cpu_checkpointing": true,
+        "contiguous_memory_optimization": true,
+        "number_checkpoints": 32,
+        "synchronize_checkpoint_boundary": true,
+        "profile": true,
+        "overlap_comm": true,
+        "layers_per_checkpoint": 1
+    },
+    "steps_per_print": 100,
+    "wall_clock_breakdown": false,
+    "zero_allow_untested_optimizer": true,
+    "fp16": {
+        "enabled": false
+    },
+    "communication_data_type": "bf16",
+    "prescale_gradients": true,
+    "gradient_predivide_factor": 8,
+    "sparse_attention": {
+        "mode": "fixed",
+        "block": 16,
+        "different_layout_per_head": true,
+        "num_local_blocks": 4,
+        "num_global_blocks": 1,
+        "attention": "bidirectional",
+        "horizontal_global_attention": false,
+        "num_different_global_patterns": 4
+    },
+    "data_efficiency": {
+        "data_parallel_input": true,
+        "data_sampling_enabled": true,
+        "ignored_unused_parameters": true
+    },
+    "flops_profiler": {
+        "enabled": true,
+        "profile_step": 1,
+        "module_depth": -1,
+        "top_modules": 1,
+        "detailed": true
+    }
+}

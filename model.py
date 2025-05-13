@@ -118,7 +118,6 @@ class TransformerBlock(nn.Module):
         x = self.residual[1](x, self.feed_forward_block)
         return x
 
-
 class Transformer(nn.Module):
     def __init__(self, vocab_size: int, seq_len: int, d_model: int = 512, N: int = 6, h: int = 8, dropout: float = 0.1,
                  d_ff: int = 2048) -> None:
@@ -150,3 +149,4 @@ class Transformer(nn.Module):
     def buildTransformer(vocab_size: int, seq_len: int, d_model: int = 512, N: int = 6, h: int = 8,
                          dropout: float = 0.1, d_ff: int = 2048) -> 'Transformer':
         return Transformer(vocab_size, seq_len, d_model, N, h, dropout, d_ff)
+

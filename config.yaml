@@ -1,0 +1,47 @@
+# Model config
+model_dim: 4096          # Mixtral base dimension
+num_layers: 32           # Mixtral depth
+num_heads: 32           # Full attention heads
+num_kv_heads: 8         # Grouped-query attention heads
+d_ff: 14336            # MoE hidden dimension
+max_seq_len: 32768      # Maximum sequence length
+sliding_window: 4096    # Attention window size
+dropout: 0.0            # No dropout in Mixtral
+vocab_size: 32000       # Mixtral tokenizer vocab size
+
+# MoE config
+num_experts: 8            # Mixtral uses 8 experts
+expert_dim: 14336         # Expert FFN dimension
+num_experts_per_tok: 2    # Top-2 routing
+expert_dropout: 0.0       # No dropout in experts
+router_z_loss_coef: 0.001 # Router loss coefficient
+router_aux_loss_coef: 0.001  # Auxiliary loss coefficient
+
+# Training config
+batch_size: 16                    # Per-GPU batch size (64 total across 4 GPUs)
+total_batch_size: 2048           # Target global batch size
+learning_rate: 2e-4              # Peak learning rate
+min_learning_rate: 1e-5          # Final learning rate
+warmup_steps: 2000              # Linear warmup steps
+cooldown_steps: 50000           # Cosine decay steps
+gradient_accumulation_steps: 32  # To reach target batch size
+weight_decay: 0.1               # AdamW weight decay
+max_grad_norm: 1.0              # Gradient clipping
+
+# Optimization
+fp16: false                     # Disable FP16
+bf16: true                      # Use BF16 for better stability
+gradient_checkpointing: true    # Save memory
+zero_stage: 3                   # ZeRO-3 for memory efficiency
+sequence_parallel: true         # Enable sequence parallelism
+gradient_clipping: 1.0          # Prevent gradient explosion
+
+# Logging
+log_interval: 100
+eval_interval: 1000
+save_interval: 1800  
+
+# Paths
+model_dir: "checkpoints"
+data_dir: "data"
+tensorboard_dir: "runs"
